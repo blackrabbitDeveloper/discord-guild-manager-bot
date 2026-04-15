@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta, timezone
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -20,14 +18,9 @@ class Clear(commands.Cog):
             return
 
         await interaction.response.defer(ephemeral=True)
-        cutoff = datetime.now(timezone.utc) - timedelta(days=14)
-        deleted = await interaction.channel.purge(
-            limit=amount,
-            after=cutoff,
-        )
+        deleted = await interaction.channel.purge(limit=amount, bulk=False)
         await interaction.followup.send(
-            f"✅ {len(deleted)}개 메시지를 삭제했습니다. (14일 이내 메시지만 삭제 가능)",
-            ephemeral=True,
+            f"✅ {len(deleted)}개 메시지를 삭제했습니다.", ephemeral=True
         )
 
     @clear.error
