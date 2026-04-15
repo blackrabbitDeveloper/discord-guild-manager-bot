@@ -85,6 +85,48 @@ class Raid(commands.Cog):
         await msg.add_reaction("✅")
         self.raids[msg.id] = raid_data
 
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if payload.user_id == self.bot.user.id:
+            return
+        if str(payload.emoji) != "✅":
+            return
+        if payload.message_id not in self.raids:
+            return
+
+        raid = self.raids[payload.message_id]
+        result = raid.add_member(payload.user_id)
+
+        channel = self.bot.get_channel(payload.channel_id)
+        msg = await channel.fetch_message(payload.message_id)
+
+        if result == "already_joined":
+            return
+
+        embed = self._build_embed(raid)
+        embed.set_footer(text=msg.embeds[0].footer.text)
+        await msg.edit(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        if str(payload.emoji) != "✅":
+            return
+        if payload.message_id not in self.raids:
+            return
+
+        raid = self.raids[payload.message_id]
+        promoted = raid.remove_member(payload.user_id)
+
+        channel = self.bot.get_channel(payload.channel_id)
+        msg = await channel.fetch_message(payload.message_id)
+
+        embed = self._build_embed(raid)
+        embed.set_footer(text=msg.embeds[0].footer.text)
+        await msg.edit(embed=embed)
+
+        if promoted:
+            await channel.send(f"<@{promoted}> 님이 대기열에서 참가자로 승격되었습니다! ⚔️")
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Raid(bot))
