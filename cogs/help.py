@@ -44,6 +44,11 @@ class Help(commands.Cog):
             inline=False,
         )
         embed.add_field(
+            name="/주사위 [최대값]",
+            value="주사위 굴리기 (기본 1~100, 버튼으로 참여/종료)",
+            inline=False,
+        )
+        embed.add_field(
             name="/help",
             value="이 도움말을 표시합니다",
             inline=False,

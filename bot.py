@@ -30,6 +30,7 @@ async def load_cogs():
     await bot.load_extension("cogs.raid")
     await bot.load_extension("cogs.help")
     await bot.load_extension("cogs.schedule")
+    await bot.load_extension("cogs.dice")
 
 
 async def main():
