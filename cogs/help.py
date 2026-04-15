@@ -24,6 +24,26 @@ class Help(commands.Cog):
             inline=False,
         )
         embed.add_field(
+            name="/스케줄 내용 시간 채널 [멘션] [사전알림]",
+            value="일회성 스케줄을 등록합니다 (관리자 전용)",
+            inline=False,
+        )
+        embed.add_field(
+            name="/스케줄반복 내용 요일 시간 채널 [멘션] [사전알림]",
+            value="매주 반복 스케줄을 등록합니다 (관리자 전용)",
+            inline=False,
+        )
+        embed.add_field(
+            name="/스케줄목록",
+            value="등록된 스케줄 목록을 확인합니다 (관리자 전용)",
+            inline=False,
+        )
+        embed.add_field(
+            name="/스케줄취소 번호:<ID>",
+            value="등록된 스케줄을 취소합니다 (관리자 전용)",
+            inline=False,
+        )
+        embed.add_field(
             name="/help",
             value="이 도움말을 표시합니다",
             inline=False,
