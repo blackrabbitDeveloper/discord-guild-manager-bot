@@ -6,10 +6,11 @@ from discord.ext import commands
 
 
 @dataclass
-class RaidData:
-    boss: str
+class PartyData:
+    activity: str
     max_members: int
     creator_id: int
+    description: str = ""
     participants: list[int] = field(default_factory=list)
     waitlist: list[int] = field(default_factory=list)
 
@@ -35,55 +36,59 @@ class RaidData:
         return None
 
 
-class Raid(commands.Cog):
+class Party(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.raids: dict[int, RaidData] = {}  # message_id -> RaidData
+        self.parties: dict[int, PartyData] = {}  # message_id -> PartyData
 
-    def _build_embed(self, raid: RaidData) -> discord.Embed:
+    def _build_embed(self, party: PartyData) -> discord.Embed:
         embed = discord.Embed(
-            title=f"⚔️ 레이드 모집: {raid.boss}",
+            title=f"⚔️ 파티 모집: {party.activity}",
             color=discord.Color.red(),
         )
+
+        if party.description:
+            embed.add_field(name="📝 내용", value=party.description, inline=False)
+
         embed.add_field(
             name="모집 인원",
-            value=f"{len(raid.participants)}/{raid.max_members}",
+            value=f"{len(party.participants)}/{party.max_members}",
             inline=False,
         )
 
-        if raid.participants:
-            participants_text = "\n".join(f"<@{uid}>" for uid in raid.participants)
+        if party.participants:
+            participants_text = "\n".join(f"<@{uid}>" for uid in party.participants)
         else:
             participants_text = "없음"
         embed.add_field(name="참가자", value=participants_text, inline=False)
 
-        if raid.waitlist:
+        if party.waitlist:
             waitlist_text = "\n".join(
-                f"{i+1}. <@{uid}>" for i, uid in enumerate(raid.waitlist)
+                f"{i+1}. <@{uid}>" for i, uid in enumerate(party.waitlist)
             )
             embed.add_field(name="대기열", value=waitlist_text, inline=False)
 
         return embed
 
-    @app_commands.command(name="레이드", description="레이드 모집을 시작합니다")
-    @app_commands.describe(보스="보스 이름", 인원="모집 인원 수")
-    async def raid(self, interaction: discord.Interaction, 보스: str, 인원: int):
+    @app_commands.command(name="파티모집", description="파티 모집을 시작합니다")
+    @app_commands.describe(활동="활동 이름", 인원="모집 인원 수", 내용="추가 설명 (선택)")
+    async def party(self, interaction: discord.Interaction, 활동: str, 인원: int, 내용: str = ""):
         if 인원 < 1 or 인원 > 50:
             await interaction.response.send_message(
                 "❌ 인원은 1~50 사이로 입력해주세요.", ephemeral=True
             )
             return
 
-        raid_data = RaidData(
-            boss=보스, max_members=인원, creator_id=interaction.user.id
+        party_data = PartyData(
+            activity=활동, max_members=인원, creator_id=interaction.user.id, description=내용
         )
-        embed = self._build_embed(raid_data)
+        embed = self._build_embed(party_data)
         embed.set_footer(text=f"모집자: {interaction.user.display_name}")
 
         await interaction.response.send_message(embed=embed)
         msg = await interaction.original_response()
         await msg.add_reaction("✅")
-        self.raids[msg.id] = raid_data
+        self.parties[msg.id] = party_data
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -91,11 +96,11 @@ class Raid(commands.Cog):
             return
         if str(payload.emoji) != "✅":
             return
-        if payload.message_id not in self.raids:
+        if payload.message_id not in self.parties:
             return
 
-        raid = self.raids[payload.message_id]
-        result = raid.add_member(payload.user_id)
+        party = self.parties[payload.message_id]
+        result = party.add_member(payload.user_id)
 
         channel = self.bot.get_channel(payload.channel_id)
         msg = await channel.fetch_message(payload.message_id)
@@ -103,7 +108,7 @@ class Raid(commands.Cog):
         if result == "already_joined":
             return
 
-        embed = self._build_embed(raid)
+        embed = self._build_embed(party)
         embed.set_footer(text=msg.embeds[0].footer.text)
         await msg.edit(embed=embed)
 
@@ -111,16 +116,16 @@ class Raid(commands.Cog):
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if str(payload.emoji) != "✅":
             return
-        if payload.message_id not in self.raids:
+        if payload.message_id not in self.parties:
             return
 
-        raid = self.raids[payload.message_id]
-        promoted = raid.remove_member(payload.user_id)
+        party = self.parties[payload.message_id]
+        promoted = party.remove_member(payload.user_id)
 
         channel = self.bot.get_channel(payload.channel_id)
         msg = await channel.fetch_message(payload.message_id)
 
-        embed = self._build_embed(raid)
+        embed = self._build_embed(party)
         embed.set_footer(text=msg.embeds[0].footer.text)
         await msg.edit(embed=embed)
 
@@ -129,4 +134,4 @@ class Raid(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Raid(bot))
+    await bot.add_cog(Party(bot))
